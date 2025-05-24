@@ -3,7 +3,7 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: tautulli
+  name: jellyfin
 spec:
   interval: 1h
   chartRef:
@@ -18,39 +18,44 @@ spec:
       retries: 3
   values:
     controllers:
-      tautulli:
+      jellyfin:
         annotations:
           reloader.stakater.com/auto: "true"
         containers:
           app:
             image:
-              repository: ghcr.io/home-operations/tautulli
-              tag: 2.15.2@sha256:cb8e3a4c2873edf7baa433e126f022f19eb43f256b65b2de3e8525dc2e4dc18e
+              repository: ghcr.io/jellyfin/jellyfin
+              tag: 10.10.7@sha256:e4d1dc5374344446a3a78e43dd211247f22afba84ea2e5a13cbe1a94e1ff2141
             env:
               TZ: America/New_York
-              TAUTULLI__PORT: &port 80
             probes:
               liveness: &probes
                 enabled: true
                 custom: true
                 spec:
                   httpGet:
-                    path: /status
-                    port: *port
+                    path: /health
+                    port: &port 8096
                   initialDelaySeconds: 0
                   periodSeconds: 10
                   timeoutSeconds: 1
                   failureThreshold: 3
               readiness: *probes
+              startup:
+                enabled: true
+                spec:
+                  failureThreshold: 30
+                  periodSeconds: 10
             securityContext:
               allowPrivilegeEscalation: false
               readOnlyRootFilesystem: true
               capabilities: { drop: ["ALL"] }
             resources:
               requests:
-                cpu: 10m
+                cpu: 100m
               limits:
-                memory: 1Gi
+                gpu.intel.com/i915: 1
+                memory: 8Gi
     defaultPodOptions:
       securityContext:
         runAsNonRoot: true
@@ -58,9 +63,10 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
         fsGroupChangePolicy: OnRootMismatch
+        supplementalGroups: [44]
     service:
       app:
-        controller: tautulli
+        controller: jellyfin
         ports:
           http:
             port: *port
@@ -77,17 +83,28 @@ spec:
                 port: *port
     persistence:
       config:
-        existingClaim: tautulli
-      config-cache:
-        existingClaim: tautulli-cache
+        existingClaim: jellyfin
         globalMounts:
-          - path: /config/cache
+          - path: /config
+      config-cache:
+        existingClaim: jellyfin-cache
+        globalMounts:
+          - path: /config/metadata
+      media:
+        type: nfs
+        server: expanse.internal
+        path: /mnt/eros/Media
+        globalMounts:
+          - path: /media
+            readOnly: true
       tmpfs:
         type: emptyDir
         advancedMounts:
-          tautulli:
+          jellyfin:
             app:
-              - path: /config/logs
-                subPath: logs
+              - path: /cache
+                subPath: cache
+              - path: /config/log
+                subPath: log
               - path: /tmp
                 subPath: tmp
