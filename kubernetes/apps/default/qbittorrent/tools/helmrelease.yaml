@@ -49,7 +49,8 @@ spec:
               "--expired",
               "--last-activity",
               "--sites",
-              "--unregistered"
+              "--unregistered",
+              "--not-linked"
             ]
             securityContext:
               allowPrivilegeEscalation: false
@@ -116,8 +117,8 @@ spec:
             args: [
               "limiter",
               "--max-line-speed-mbps", "100",
-              "--max-percent", "0.8",
-              "--limit-percent", "0.4",
+              "--max-percent", "0.9",
+              "--limit-percent", "0.45",
               "--interval", "5"
             ]
     defaultPodOptions:
@@ -137,8 +138,6 @@ spec:
         type: nfs
         server: expanse.internal
         path: /mnt/eros/Media
-        advancedMounts:
-          orphaned:
-            app:
-              - path: /media/Downloads/qbittorrent
-                subPath: Downloads/qbittorrent
+        globalMounts:
+          - path: /media/Downloads/qbittorrent
+            subPath: Downloads/qbittorrent
