@@ -25,7 +25,7 @@ spec:
           app:
             image:
               repository: ghcr.io/home-operations/bazarr
-              tag: 1.5.2@sha256:e569e3dd344a9a83e948f12eb7fd2c58ab051d0af5507ba69cacfdb5119a8362
+              tag: 1.5.2@sha256:dbc87e5ce9e199709188e152e82b3ff5d33e6521a1b3d61e465aa75b4b739e7f
             env:
               TZ: America/New_York
             probes:
@@ -59,7 +59,6 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
     service:
       app:
-        controller: bazarr
         ports:
           http:
             port: *port
@@ -70,26 +69,23 @@ spec:
           - name: internal
             namespace: kube-system
             sectionName: https
-        rules:
-          - backendRefs:
-              - identifier: app
-                port: *port
     persistence:
       config:
         existingClaim: bazarr
-      config-cache:
-        type: emptyDir
-        globalMounts:
-          - path: /config/cache
-      config-log:
-        type: emptyDir
-        globalMounts:
-          - path: /config/log
       media:
         type: nfs
         server: expanse.internal
         path: /mnt/eros/Media
         globalMounts:
           - path: /media
-      tmp:
+      tmpfs:
         type: emptyDir
+        advancedMounts:
+          bazarr:
+            app:
+              - path: /config/cache
+                subPath: cache
+              - path: /config/log
+                subPath: log
+              - path: /tmp
+                subPath: tmp
