@@ -59,7 +59,7 @@ spec:
                 memory: 18Gi
     defaultPodOptions:
       annotations:
-        k8s.v1.cni.cncf.io/networks: |
+        k8s.v1.cni.cncf.io/networks: |-
           [{
             "name": "vpn",
             "namespace": "network",
